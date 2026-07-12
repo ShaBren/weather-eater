@@ -2,7 +2,7 @@ services:
   weather:
     build: .
     ports:
-      - "5000:5000"
+      - "4902:5000"
     volumes:
       - ./instance:/app/instance   # persist SQLite DB
       - ./importer.py:/app/importer.py  # optional, for running importer
