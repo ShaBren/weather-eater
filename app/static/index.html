@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Station Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>🌦️ Weather Station</h1>
+            <div class="header-right">
+                <span id="last-updated">Last update: --</span>
+                <button id="refresh-btn" class="btn">⟳ Refresh</button>
+            </div>
+        </header>
+
+        <!-- Current Conditions -->
+        <section class="current-grid" id="current-grid">
+            <!-- filled by JS -->
+        </section>
+
+        <!-- Chart Section -->
+        <section class="chart-section">
+            <div class="chart-controls">
+                <div class="control-group">
+                    <label for="metric-select">Metric</label>
+                    <select id="metric-select"></select>
+                </div>
+                <div class="control-group">
+                    <label for="start-date">From</label>
+                    <input type="datetime-local" id="start-date" />
+                </div>
+                <div class="control-group">
+                    <label for="end-date">To</label>
+                    <input type="datetime-local" id="end-date" />
+                </div>
+                <div class="control-group quick-buttons">
+                    <button class="btn quick-btn" data-days="1">24h</button>
+                    <button class="btn quick-btn" data-days="7">7d</button>
+                    <button class="btn quick-btn" data-days="30">30d</button>
+                </div>
+                <button id="update-chart-btn" class="btn primary">Update Chart</button>
+            </div>
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
+        </section>
+
+        <!-- Recent Readings Table -->
+        <section class="table-section">
+            <h2>Recent Readings</h2>
+            <div class="table-wrapper">
+                <table id="data-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th id="table-metric-label">Value</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
