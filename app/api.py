@@ -95,3 +95,31 @@ def history():
         result.append(_format_entry(e['id'], e['created'], entry_data))
 
     return jsonify(result)
+
+@api.route('/daily_stats')
+def daily_stats():
+    """Get today's min and max temperatures."""
+    db = get_db()
+    today = datetime.now().strftime('%Y-%m-%d')
+    start_of_day = f"{today} 00:00:00"
+    end_of_day = f"{today} 23:59:59"
+
+    rows = db.execute(
+        """SELECT value FROM entry_data 
+           WHERE name = 'tempf' 
+           AND entry_id IN (
+               SELECT id FROM entry 
+               WHERE created BETWEEN ? AND ?
+           )""",
+        (start_of_day, end_of_day)
+    ).fetchall()
+
+    if not rows:
+        return jsonify({'error': 'No data for today'}), 404
+
+    temps = [float(row['value']) for row in rows]
+    return jsonify({
+        'date': today,
+        'min': round(min(temps), 1),
+        'max': round(max(temps), 1)
+    })
