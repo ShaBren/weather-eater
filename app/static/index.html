@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weather Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>🌦️ Weather Station Dashboard</h1>
+
+        <div class="controls">
+            <label>
+                Metric:
+                <select id="metric-select"></select>
+            </label>
+            <label>
+                From:
+                <input type="datetime-local" id="start-date" />
+            </label>
+            <label>
+                To:
+                <input type="datetime-local" id="end-date" />
+            </label>
+            <button id="update-btn">Update</button>
+        </div>
+
+        <div class="latest-card" id="latest"></div>
+
+        <div class="chart-container">
+            <canvas id="chart"></canvas>
+        </div>
+
+        <div class="table-container">
+            <table id="data-table">
+                <thead><tr><th>Time</th><th id="table-metric-label">Value</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
