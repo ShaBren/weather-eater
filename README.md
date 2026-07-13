@@ -69,7 +69,7 @@ The response is plain text: `OK`.
 
 - `GET /api/latest` returns the most recent entry with formatted values
 - `GET /api/history?start=...&end=...&limit=...&offset=...` returns a paginated history of entries
-- `GET /api/daily_stats` returns today’s min/max temperature for `tempf`
+- `GET /api/daily_stats` returns today's min/max temperature for `tempf`
 - `GET /api/metrics` returns the list of supported dashboard metrics
 - `GET /get_data` returns the latest reading as a plain-text summary
 
@@ -97,6 +97,21 @@ The importer creates the new database at `instance/weather.sqlite` and copies ro
 - The dashboard is a client-side single-page app served from [app/static/](app/static/)
 - Chart and dashboard preferences are cached in the browser using local storage
 - The app is intentionally lightweight and meant to be run locally or on a small host
+
+## Development proxy
+
+[dev_proxy.py](dev_proxy.py) is a standalone script for developing the SPA against a live remote API without CORS issues. It serves `app/static/` directly and forwards any `/api/*` requests to a configurable upstream host.
+
+To use it:
+
+```bash
+pip install requests flask
+python dev_proxy.py
+```
+
+Then open http://localhost:5000/ in your browser. The SPA&#8217;s existing relative `/api/...` calls are handled by the proxy — no code changes needed.
+
+The upstream target defaults to `http://weather.cubelime.com` and can be changed by editing the `LIVE_API_URL` variable at the top of the script.
 
 ## License
 
