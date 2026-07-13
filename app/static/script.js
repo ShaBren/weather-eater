@@ -65,12 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function loadDashboardSettings() {
         try {
             const stored = JSON.parse(localStorage.getItem(DASHBOARD_SETTINGS_KEY));
-            if (stored) {
-                if (Array.isArray(stored.enabled)) {
-                    enabledCardIds = new Set(stored.enabled);
-                    settingsLoaded = true;
-                }
-                if (Array.isArray(stored.order)) cardOrder = stored.order;
+            const hasStoredSettings = stored && typeof stored === 'object' &&
+                (Array.isArray(stored.enabled) || Array.isArray(stored.order));
+            if (hasStoredSettings) {
+                enabledCardIds = new Set(Array.isArray(stored.enabled) ? stored.enabled : []);
+                cardOrder = Array.isArray(stored.order) ? stored.order : [];
+                settingsLoaded = true;
                 return;
             }
         } catch (e) { /* ignore */ }
@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function saveDashboardSettings() {
+        settingsLoaded = true;
         localStorage.setItem(DASHBOARD_SETTINGS_KEY, JSON.stringify({
             enabled: Array.from(enabledCardIds),
             order: cardOrder
@@ -130,6 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function buildCardRegistry(metrics) {
         const findMetric = (id) => metrics.find(m => m.id === id);
         const registry = [];
+        const previousEnabled = new Set(enabledCardIds);
+        const previousOrder = [...cardOrder];
 
         // Daily Extremes
         registry.push({
@@ -194,28 +197,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         registry.push(...metricCards);
 
-        // Apply enabled/order only if settings were loaded
+        // Apply enabled/order while preserving any existing state.
+        const nextEnabled = new Set(previousEnabled);
+        const nextOrder = [...previousOrder];
+
         if (!settingsLoaded) {
-            // First run: enable all cards with defaultEnabled, set order by priority
+            // First run: enable all cards with defaultEnabled, set order by priority.
             registry.forEach(card => {
-                if (card.defaultEnabled !== false) enabledCardIds.add(card.id);
-                if (!cardOrder.includes(card.id)) cardOrder.push(card.id);
+                if (card.defaultEnabled !== false) nextEnabled.add(card.id);
+                if (!nextOrder.includes(card.id)) nextOrder.push(card.id);
             });
         } else {
-            // Merge: add any new cards (not in enabled) with defaultEnabled
+            // Merge: add any new cards that were not previously present.
             registry.forEach(card => {
-                if (!enabledCardIds.has(card.id) && card.defaultEnabled !== false) {
-                    enabledCardIds.add(card.id);
+                if (!nextEnabled.has(card.id) && card.defaultEnabled !== false) {
+                    nextEnabled.add(card.id);
                 }
-                if (!cardOrder.includes(card.id)) {
-                    cardOrder.push(card.id);
+                if (!nextOrder.includes(card.id)) {
+                    nextOrder.push(card.id);
                 }
             });
         }
 
-        // Ensure order is up-to-date (remove any stale IDs)
+        // Ensure order is up-to-date (remove any stale IDs).
         const validIds = new Set(registry.map(c => c.id));
-        cardOrder = cardOrder.filter(id => validIds.has(id));
+        enabledCardIds = new Set([...nextEnabled].filter(id => validIds.has(id)));
+        cardOrder = nextOrder.filter(id => validIds.has(id));
 
         return registry;
     }
@@ -624,15 +631,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Populate options
         const sorted = [...allMetrics].sort((a, b) => a.label.localeCompare(b.label));
+        const options = sorted.map(m => ({
+            value: m.id,
+            label: m.label,
+            selected: selectedIds.includes(m.id)
+        }));
         choices.clearStore();
-        sorted.forEach(m => {
-            choices.setChoices([{ value: m.id, label: m.label, selected: selectedIds.includes(m.id) }], 'value', 'label', true);
-        });
+        choices.setChoices(options, 'value', 'label', true);
 
         // Save on change
-        metricSelect.addEventListener('change', () => {
+        metricSelect.onchange = () => {
             saveChartSettings();
-        });
+        };
     }
 
     // ---------- Build UI after metrics are set ----------
