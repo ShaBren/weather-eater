@@ -208,9 +208,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!nextOrder.includes(card.id)) nextOrder.push(card.id);
             });
         } else {
-            // Merge: add any new cards that were not previously present.
+            // Merge: add any genuinely NEW cards (those that didn't exist in the
+            // previous session). Cards already known are left in whatever
+            // enabled/disabled state the user chose — we check previousOrder
+            // because it holds all known card IDs regardless of enable state.
             registry.forEach(card => {
-                if (!nextEnabled.has(card.id) && card.defaultEnabled !== false) {
+                const isNew = !previousOrder.includes(card.id);
+                if (isNew && card.defaultEnabled !== false) {
                     nextEnabled.add(card.id);
                 }
                 if (!nextOrder.includes(card.id)) {
