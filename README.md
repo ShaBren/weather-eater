@@ -1,103 +1,104 @@
 
-# 🌦️ Ambient Weather Station Dashboard (Weather-Eater)
+# Weather Eater
 
-A robust system that ingests time-series weather reports from an Ambient Weather station, stores the data in a structured SQLite database, and serves a modern Single Page Application (SPA) dashboard for real-time visualization and historical analysis.
+Weather Eater is a small Flask application for collecting weather readings from an Ambient Weather-style station, storing them in SQLite, and displaying them in a lightweight dashboard with charts and recent-history views.
 
-## ✨ Features
+## What it does
 
-*   **Automated Data Ingestion:** Securely receives streamed weather metrics via HTTP POST requests.
-*   **Structured Persistence:** Uses an efficient key-value model (entry/entry_data) in SQLite to store time-series data.
-*   **Dynamic Dashboard SPA:** Serves a responsive Single Page Application that visualizes the latest readings and historical trends.
-*   **Advanced API Endpoints:** Dedicated endpoints for fetching paginated history, daily statistics (Min/Max), and metric metadata.
+- Accepts weather metric submissions from an external source
+- Stores each reading as an entry with associated metric values
+- Serves a browser-based dashboard for current conditions, recent data, and historical charts
+- Exposes simple JSON endpoints for latest data, history, daily min/max, and available metrics
 
-## 🚀 Getting Started
+## Project structure
 
-### Prerequisites
+- [app/__init__.py](app/__init__.py) creates the Flask app and registers the routes
+- [app/post_data.py](app/post_data.py) accepts incoming readings
+- [app/get_data.py](app/get_data.py) returns the latest reading as plain text
+- [app/api.py](app/api.py) exposes JSON API endpoints
+- [app/db.py](app/db.py) manages the SQLite connection and initialization
+- [app/data_mapping.py](app/data_mapping.py) defines supported metric names, labels, and units
+- [app/static/](app/static/) contains the dashboard HTML, CSS, and JavaScript
+- [importer.py](importer.py) imports an older SQLite database into the current schema
 
-*   Python 3.x
-*   Docker Engine
-*   Docker Compose
+## Requirements
 
-### Installation via Docker Compose
+- Python 3.11+
+- Docker and Docker Compose (recommended)
 
-The recommended way to run this project is using docker-compose. This handles dependency management and database initialization automatically.
+## Quick start with Docker
 
-1.  **Clone the repository:**
-    
-bash
-git clone [repository_url] weather-eater
-cd weather-eater
+1. Clone the repository and change into it:
 
+   ```bash
+   git clone https://github.com/ShaBren/weather-eater.git
+   cd weather-eater
+   ```
 
-2.  **Build and Run Services:**
-    
-bash
-docker compose up --build -d
+2. Build and start the app:
 
+   ```bash
+   docker compose up --build -d
+   ```
 
-### Usage Guide (How to Use It)
+3. Initialize the SQLite database schema:
 
-#### 1. Ingesting Weather Data (The Sender)
-To send a new set of weather reports, your external data source (e.g., a script running on the station gateway) must make a **POST** request to the API endpoint: `/post_data`.
+   ```bash
+   docker compose exec weather flask init-db
+   ```
 
-**Example Request:**
-http
-POST /post_data?temperature=72.5&humidity=45&wind=10&pressure=1012 HTTP/1.1
-Host: localhost:5000
-Content-Type: application/x-www-form-urlencoded
+4. Open the dashboard in your browser:
 
+   - http://localhost:4902/
 
+The app persists its SQLite database in the local instance folder, so data survives container restarts.
 
-#### 2. Single Page Application (SPA) Dashboard
+## Sending weather data
 
-The dashboard is served by the Flask backend and automatically reads data from the database whenever a user accesses it. It relies on three key API calls to function:
+The ingestion endpoint accepts query parameters for each metric. Any metric name is stored, but the frontend and API know how to format the known set defined in [app/data_mapping.py](app/data_mapping.py).
 
-**A. Viewing Latest Readings:**
-When first loaded, the dashboard hits the `/get_data endpoint. This call retrieves the most recent set of metrics (the latest weather snapshot) and formats them with appropriate units for immediate display.
+Example:
 
-*   **Endpoint:**GET /get_data
-*   **Function:** Retrieves a single formatted string containing all key/value pairs from the current reading cycle.
+```bash
+curl "http://localhost:4902/post_data?tempf=72.5&humidity=45&windspeedmph=10&baromabsin=29.92"
+```
 
-**B. Viewing Historical Data (Charting):**
-For trend analysis, charts require historical data over a specific time period. The API supports robust querying for this purpose:
+The response is plain text: `OK`.
 
-*   **Endpoint:**GET /api/history
-*   **Parameters:** You can filter by date range?start=...&end=...`), and manage large datasets using pagination?limit=X&offset=Y`).
-*   **Data Structure:** Returns a JSON array, where each object represents a full weather entry (including timestamp) and contains nested data for every metric recorded at that time.
+## API endpoints
 
-**C. System Configuration / Metrics Discovery:**
-This endpoint is used by the SPA itself during initialization to ensure it knows which metrics to display, even if they are added or removed from your station's reporting cycle.
+- `GET /api/latest` returns the most recent entry with formatted values
+- `GET /api/history?start=...&end=...&limit=...&offset=...` returns a paginated history of entries
+- `GET /api/daily_stats` returns today’s min/max temperature for `tempf`
+- `GET /api/metrics` returns the list of supported dashboard metrics
+- `GET /get_data` returns the latest reading as a plain-text summary
 
-*   **Endpoint:**GET /api/metrics
-*   **Function:** Returns a JSON list of all active and non-hidden metrics (ID, Label, Units), allowing the dashboard UI to dynamically build its input fields and labels without code changes.
+## Database schema
 
-## ⚙️ Technical Architecture Deep Dive (For Developers)
+The app uses SQLite with two main tables:
 
-### Database Schema
+- `entry`: one row per weather reading, with a timestamp
+- `entry_data`: one row per metric value associated with an entry
 
-The project utilizes an SQLite database optimized for time-series data, structured across two main tables:
+This structure makes it straightforward to store arbitrary weather metrics over time while still keeping the data queryable.
 
-1.  **entry**: Stores the metadata for a single weather reading event (the timestamp).
-    *   id`: Primary Key
-    *   created`: The precise date and time of the measurement (UTC).
-2.  **entry_data**: Stores the actual key/value metrics associated with an entry ID.
-    *   entry_id`: Foreign Key linking back to entry`.
-    *   name`: The metric name (e.g., 'temperature', 'humidity').
-    *   value`: The raw recorded value.
+## Importing an older database
 
-### Core Components Breakdown
+If you have an older SQLite database and want to migrate it into the current schema, run:
 
-| Component | File(s) | Responsibility | Description |
-| :--- | :--- | :--- | :--- |
-| **Ingestion Layer** |post_data.py | **Write/Save Data** | Receives key-value pairs from external sources, creates a single entry`, and saves all metrics as associated entry_data records in an atomic transaction. |
-| **Data Retrieval API** |api.py | **Read/Query Data** | Provides advanced endpoints/history`, `/daily_stats`) to query specific time ranges, calculate aggregates (Min/Max), or list available metrics for the dashboard. |
-| **Dashboard Read Endpoint**|get_data.py | **Display Format** | A simplified endpoint that fetches only the *most recent* reading and formats it into a display-ready string using predefined data mapping rules. |
-| **Data Mapping & Logic** |data_mapping.py`,schema.sql | **Model/Validation** | Defines which metrics are valid (DataType`) and controls how raw values are transformed (e.g., converting 'F' to '°F'). |
+```bash
+python importer.py /path/to/old/weather.sqlite
+```
 
-## 📦 Deployment Details
+The importer creates the new database at `instance/weather.sqlite` and copies rows from the legacy database.
 
-### Dockerization Strategy
+## Development notes
 
-The use ofDockerfile anddocker-compose.yml ensures that the application runs consistently regardless of the host operating system, managing dependencies(requirements.txt) and networking transparently.
+- The dashboard is a client-side single-page app served from [app/static/](app/static/)
+- Chart and dashboard preferences are cached in the browser using local storage
+- The app is intentionally lightweight and meant to be run locally or on a small host
 
-*   **Docker Compose:** Orchestrates the entire stack, ensuring the database is initialized and the Flask application server (Gunicorn) starts correctly in production mode.
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
