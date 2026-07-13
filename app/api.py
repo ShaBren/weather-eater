@@ -98,11 +98,11 @@ def history():
 
 @api.route('/daily_stats')
 def daily_stats():
-    """Get today's min and max temperatures."""
     db = get_db()
-    today = datetime.now().strftime('%Y-%m-%d')
-    start_of_day = f"{today} 00:00:00"
-    end_of_day = f"{today} 23:59:59"
+    # Use UTC date (since timestamps are stored in UTC)
+    today_utc = datetime.utcnow().strftime('%Y-%m-%d')
+    start = f"{today_utc} 00:00:00"
+    end = f"{today_utc} 23:59:59"
 
     rows = db.execute(
         """SELECT value FROM entry_data 
@@ -111,7 +111,7 @@ def daily_stats():
                SELECT id FROM entry 
                WHERE created BETWEEN ? AND ?
            )""",
-        (start_of_day, end_of_day)
+        (start, end)
     ).fetchall()
 
     if not rows:
@@ -119,7 +119,21 @@ def daily_stats():
 
     temps = [float(row['value']) for row in rows]
     return jsonify({
-        'date': today,
+        'date': today_utc,
         'min': round(min(temps), 1),
         'max': round(max(temps), 1)
     })
+
+@api.route('/metrics')
+def list_metrics():
+    """Return all non-hidden data points from data_mapping."""
+    from .data_mapping import DataType
+    metrics = []
+    for key, dp in DataType.items():
+        if not dp.hidden:
+            metrics.append({
+                'id': key,
+                'label': dp.name,
+                'units': dp.units
+            })
+    return jsonify(sorted(metrics, key=lambda x: x['label']))

@@ -4,30 +4,34 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Weather Station Dashboard</title>
-    <link rel="stylesheet" href="static/style.css" />
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
 </head>
 <body>
     <div class="dashboard">
         <header>
-            <h1>🌦️ Weather Station</h1>
-            <div class="header-right">
+            <div style="display:flex; align-items:center; gap:16px;">
+                <h1>🌦️ Weather Station</h1>
                 <span id="last-updated">Last update: --</span>
+            </div>
+            <div class="header-right">
                 <button id="refresh-btn" class="btn">⟳ Refresh</button>
+                <button id="settings-btn" class="btn" title="Configure Dashboard">⚙️</button>
             </div>
         </header>
 
-        <!-- Current Conditions -->
-        <section class="current-grid" id="current-grid">
-            <!-- filled by JS -->
-        </section>
+        <!-- Current Conditions Grid -->
+        <section class="current-grid" id="current-grid"></section>
 
         <!-- Chart Section -->
         <section class="chart-section">
             <div class="chart-controls">
                 <div class="control-group">
-                    <label for="metric-select">Metric</label>
-                    <select id="metric-select"></select>
+                    <label for="metric-select">Metrics</label>
+                    <select id="metric-select" multiple></select>
                 </div>
                 <div class="control-group">
                     <label for="start-date">From</label>
@@ -38,13 +42,17 @@
                     <input type="datetime-local" id="end-date" />
                 </div>
                 <div class="control-group quick-buttons">
-                    <button class="btn quick-btn" data-days="1">24h</button>
-                    <button class="btn quick-btn" data-days="7">7d</button>
-                    <button class="btn quick-btn" data-days="30">30d</button>
+                    <button class="btn quick-btn" data-hours="1">1h</button>
+                    <button class="btn quick-btn" data-hours="4">4h</button>
+                    <button class="btn quick-btn" data-hours="8">8h</button>
+                    <button class="btn quick-btn" data-hours="24">24h</button>
+                    <button class="btn quick-btn" data-hours="168">7d</button>
+                    <button class="btn quick-btn" data-hours="720">30d</button>
                 </div>
                 <button id="update-chart-btn" class="btn primary">Update Chart</button>
             </div>
             <div class="chart-container">
+                <div id="chart-loading" class="chart-loading" style="display:none;">⏳ Loading...</div>
                 <canvas id="chart"></canvas>
             </div>
         </section>
@@ -66,6 +74,23 @@
         </section>
     </div>
 
-    <script src="static/script.js"></script>
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Dashboard Settings</h2>
+                <button id="close-settings-btn" class="btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Drag to reorder cards. Toggle visibility.</p>
+                <div id="settings-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="save-settings-btn" class="btn primary">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
 </body>
 </html>
