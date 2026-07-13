@@ -5,7 +5,7 @@ import os
 # --- Configuration ---
 # The URL where your actual API is running (live instance)
 LIVE_API_URL = "http://weather.cubelime.com" 
-PROXY_PORT = 5000 # Port for the local dev proxy server
+PROXY_PORT = 5005 # Port for the local dev proxy server
 
 app = Flask(__name__, static_folder='app/static')
 
@@ -35,7 +35,7 @@ def serve_static(subpath):
 @app.route('/api/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE'])
 def proxy_request(subpath):
     """Proxy endpoint for all API calls to the live server."""
-    full_url = f"{LIVE_API_URL}/{subpath}"
+    full_url = f"{LIVE_API_URL}/api/{subpath}"
     method = request.method
 
     # Handle preflight OPTIONS requests first
@@ -48,7 +48,7 @@ def proxy_request(subpath):
         params = dict(request.args)
 
         # Forward the request to the actual target API
-        response = requests.request(
+        upstream = requests.request(
             method, 
             full_url, 
             headers={
@@ -59,8 +59,10 @@ def proxy_request(subpath):
             params=params
         )
 
-        # Return the response from the target API
-        return response.content, response.status_code, response.headers
+        # Return just the body and status — don't proxy raw upstream headers
+        # (they can contain Transfer-Encoding, Content-Encoding, etc. that
+        #  conflict with Flask's own response handling)
+        return upstream.content, upstream.status_code, {'Content-Type': 'application/json'}
 
     except requests.exceptions.ConnectionError:
         return jsonify({"error": f"Could not connect to the live API at {LIVE_API_URL}. Is it running?"}), 503, {'Content-Type': 'application/json'}
