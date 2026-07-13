@@ -236,13 +236,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ---------- Heat Index ----------
     function calculateHeatIndex(tempF, humidityPercent) {
-        if (tempF < 80 || humidityPercent < 40) return null;
+        if (humidityPercent < 40) return tempF;
         const T = tempF, R = humidityPercent;
-        const HI = -42.379 + 2.04901523*T + 10.14333127*R - 0.22475541*T*R
-                 - 0.00683783*T*T - 0.05481717*R*R + 0.00122874*T*T*R
-                 + 0.00085282*T*R*R - 0.00000199*T*T*R*R;
-        if (HI < 80) return tempF;
-        return Math.round(HI * 10) / 10;
+		if (tempF < 80) {
+			const HI = 0.5 * (0.5 * (T + 61.0 + ((T - 68.0) * 1.2) + (R * 0.094)) + T);
+        	return Math.round(HI * 10) / 10;
+		}
+		else {
+			const HI = -42.379 + 2.04901523*T + 10.14333127*R - 0.22475541*T*R
+					 - 0.00683783*T*T - 0.05481717*R*R + 0.00122874*T*T*R
+					 + 0.00085282*T*R*R - 0.00000199*T*T*R*R;
+        	if (HI < 80) return tempF;
+        	return Math.round(HI * 10) / 10;
+		}
     }
 
     // ---------- Render Dashboard ----------
