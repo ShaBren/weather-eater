@@ -298,11 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
         lastUpdated.textContent = `Last update: ${formatDate(latestData.created)}`;
     }
 
-    function formatDate(iso) {
-        if (!iso) return '--';
-        return new Date(iso).toLocaleString();
-    }
-
     // ---------- Fetch & Refresh ----------
     async function refreshAll() {
         try {
@@ -413,8 +408,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const params = {
             limit: 500
         };
-        if (startDate.value) params.start = new Date(startDate.value).toISOString();
-        if (endDate.value) params.end = new Date(endDate.value).toISOString();
+        if (startDate.value) params.start = toApiDateString(new Date(startDate.value));
+        if (endDate.value) params.end = toApiDateString(new Date(endDate.value));
 
         chartLoading.style.display = 'flex';
 
@@ -442,13 +437,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (isNaN(t) || isNaN(h)) return null;
                         const hi = calculateHeatIndex(t, h);
                         if (hi === null) return null;
-                        return { time: new Date(e.created), value: hi };
+                        return { time: parseUtc(e.created), value: hi };
                     }).filter(d => d !== null);
                 } else {
                     dataPoints = entries.map(e => {
                         const dp = e.data[metricId];
                         if (!dp) return null;
-                        return { time: new Date(e.created), value: parseFloat(dp.raw) };
+                        return { time: parseUtc(e.created), value: parseFloat(dp.raw) };
                     }).filter(d => d !== null);
                 }
 
@@ -499,7 +494,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (dp) displayValue = dp.formatted;
                 }
                 const row = tableBody.insertRow();
-                row.insertCell().textContent = new Date(entry.created).toLocaleString();
+                row.insertCell().textContent = formatDate(entry.created);
                 row.insertCell().textContent = displayValue;
             }
 
@@ -602,6 +597,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function localDateTimeString(date) {
         const pad = n => String(n).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+    }
+
+    // Format a Date as YYYY-MM-DD HH:MM:SS (space-separated, matching SQLite)
+    function toApiDateString(date) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+    }
+
+    // Parse a naive UTC string "YYYY-MM-DD HH:MM:SS" as UTC and return a Date
+    // (the resulting Date's local-methods will reflect the browser timezone)
+    function parseUtc(utcStr) {
+        if (!utcStr) return null;
+        const [datePart, timePart] = utcStr.split(' ');
+        if (!datePart || !timePart) return null;
+        const [y, m, d] = datePart.split('-').map(Number);
+        const [hh, mm, ss = 0] = timePart.split(':').map(Number);
+        return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
+    }
+
+    function formatDate(utcStr) {
+        const dt = parseUtc(utcStr);
+        return dt ? dt.toLocaleString() : '--';
     }
 
     function setDateRange(hours) {
