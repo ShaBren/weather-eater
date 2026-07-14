@@ -605,19 +605,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
     }
 
-    // Parse a naive UTC string "YYYY-MM-DD HH:MM:SS" as UTC and return a Date
-    // (the resulting Date's local-methods will reflect the browser timezone)
-    function parseUtc(utcStr) {
-        if (!utcStr) return null;
-        const [datePart, timePart] = utcStr.split(' ');
-        if (!datePart || !timePart) return null;
-        const [y, m, d] = datePart.split('-').map(Number);
-        const [hh, mm, ss = 0] = timePart.split(':').map(Number);
-        return new Date(Date.UTC(y, m - 1, d, hh, mm, ss));
+    // Parse a UTC timestamp string (any format JS Date can handle, e.g.
+    // RFC 1123 from Flask jsonify) and return a Date object.
+    // .toLocaleString() on the result gives local-timezone display.
+    function parseUtc(str) {
+        if (!str) return null;
+        const dt = new Date(str);
+        return isNaN(dt.getTime()) ? null : dt;
     }
 
-    function formatDate(utcStr) {
-        const dt = parseUtc(utcStr);
+    function formatDate(str) {
+        const dt = parseUtc(str);
         return dt ? dt.toLocaleString() : '--';
     }
 
